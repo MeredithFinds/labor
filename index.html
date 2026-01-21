@@ -161,26 +161,26 @@
          TOOL 2: Real-time labor cut
     ========================== -->
     <div class="card" id="tool2">
-      <h2>2) Real-Time Labor Cut (Sales Variance → Hours)</h2>
+      <h2>2) Real-Time Labor Cut (Sales Difference → Hours)</h2>
       <p class="sub">
         Enter your sales difference vs projection, labor target %, and avg wage/hr. Get labor $ to protect and hours/minutes to cut.
       </p>
 
       <div class="grid">
-        <!-- UPDATED: iPhone-friendly (no minus sign needed) -->
+        <!-- iPhone-friendly: no minus sign needed -->
         <div>
           <label for="salesVarAbs">Sales difference ($)</label>
           <input id="salesVarAbs" inputmode="decimal" placeholder="189.86" />
           <div class="tiny" style="margin-top:-6px;">
-            Enter a positive number. Select whether you are behind or ahead of projection.
+            Enter a positive number. Choose Negative/Positive to apply the sign.
           </div>
         </div>
 
         <div>
-          <label for="salesDir">Sales vs Projection</label>
+          <label for="salesDir">Sales Difference Type</label>
           <select id="salesDir">
-            <option value="behind" selected>Behind Projection (Actual &lt; Projected)</option>
-            <option value="ahead">Ahead of Projection (Actual &gt; Projected)</option>
+            <option value="negative" selected>Negative Sales Difference</option>
+            <option value="positive">Positive Sales Difference</option>
           </select>
         </div>
 
@@ -216,7 +216,7 @@
         <div class="result"><span>Labor $ to protect (Sales × Target %)</span><span class="value" id="laborDollars">—</span></div>
         <div class="result"><span>Hours to cut (Labor $ ÷ Avg wage)</span><span class="value" id="hoursToCut">—</span></div>
         <div class="result"><span>Minutes to cut (hours × 60)</span><span class="value" id="minutesToCut">—</span></div>
-        <div class="result"><span>Rounded minutes (easy scheduling)</span><span class="value" id="minutesRounded">—</span></div>
+        <div class="result hookup"><span>Rounded minutes (easy scheduling)</span><span class="value" id="minutesRounded">—</span></div>
 
         <div class="hint">
           Tip: Use rounded minutes to reduce overlap, adjust breaks, or send someone early <b>without breaking the bottleneck</b>.
@@ -377,7 +377,7 @@
     clearError('err2');
 
     const salesVarAbs = toNum($('salesVarAbs').value);
-    const salesDir = $('salesDir').value;
+    const salesDir = $('salesDir').value; // "negative" | "positive"
     const laborTargetPct2 = toNum($('laborTargetPct2').value);
     const avgWage = toNum($('avgWage').value);
     const roundStep = toNum($('roundTo').value);
@@ -389,7 +389,7 @@
     }
     if (salesVarAbs < 0) {
       $('results2').style.display = 'block';
-      showError('err2', 'Sales difference should be a positive number. Use the dropdown to choose behind/ahead.');
+      showError('err2', 'Sales difference should be a positive number. Use the dropdown to choose negative/positive.');
       return;
     }
     if (avgWage <= 0) {
@@ -399,7 +399,7 @@
     }
 
     // Convert into signed variance behind-the-scenes
-    const salesVar = (salesDir === 'behind' ? -Math.abs(salesVarAbs) : Math.abs(salesVarAbs));
+    const salesVar = (salesDir === 'negative' ? -Math.abs(salesVarAbs) : Math.abs(salesVarAbs));
 
     const laborDollarsRaw = salesVar * (laborTargetPct2 / 100);
     const laborDollarsToProtect = Math.abs(laborDollarsRaw);
@@ -408,15 +408,15 @@
     const minutesToCut = hoursToCut * 60;
     const minutesRounded = roundToNearest(minutesToCut, isFinite(roundStep) && roundStep > 0 ? roundStep : 5);
 
-    if (salesDir === 'behind' && salesVarAbs > 0) {
+    if (salesDir === 'negative' && salesVarAbs > 0) {
       $('headline2').textContent =
-        `Actual is behind projected by $${salesVarAbs.toFixed(2)} → protect ${money(laborDollarsToProtect)} in labor (${fmt2(hoursToCut)} hrs).`;
-    } else if (salesDir === 'ahead' && salesVarAbs > 0) {
+        `Negative sales difference: $${salesVarAbs.toFixed(2)} → protect ${money(laborDollarsToProtect)} in labor (${fmt2(hoursToCut)} hrs).`;
+    } else if (salesDir === 'positive' && salesVarAbs > 0) {
       $('headline2').textContent =
-        `Actual is ahead of projected by $${salesVarAbs.toFixed(2)} → you can add up to ${money(laborDollarsToProtect)} in labor (${fmt2(hoursToCut)} hrs) IF ops need it.`;
+        `Positive sales difference: $${salesVarAbs.toFixed(2)} → you have room for ${money(laborDollarsToProtect)} in labor (${fmt2(hoursToCut)} hrs) if needed.`;
     } else {
       $('headline2').textContent =
-        `On projection → no labor adjustment needed from variance.`;
+        `No sales difference entered → no adjustment needed.`;
     }
 
     $('laborDollars').textContent = money(laborDollarsToProtect);
@@ -429,7 +429,7 @@
 
   function resetTool2() {
     $('salesVarAbs').value = '0.00';
-    $('salesDir').value = 'behind';
+    $('salesDir').value = 'negative';
     $('laborTargetPct2').value = '0.00';
     $('avgWage').value = '0.00';
     $('roundTo').value = '5';
