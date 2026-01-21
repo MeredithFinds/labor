@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Labor Tools</title>
+  <style>
+    :root { --radius: 14px; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0; background: #f6f7fb; color: #111;
+    }
+    .wrap { max-width: 560px; margin: 0 auto; padding: 18px; }
+    .card {
+      background: #fff; border-radius: var(--radius);
+      box-shadow: 0 6px 18px rgba(0,0,0,.07);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    h1 { font-size: 18px; margin: 0 0 6px; }
+    h2 { font-size: 16px; margin: 0 0 8px; }
+    .sub { font-size: 12px; color:#555; margin: 0 0 12px; line-height: 1.35; }
+
+    .grid { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+    label { font-size: 12px; color: #444; display: block; margin-bottom: 6px; }
+    input {
+      width: 100%; box-sizing: border-box;
+      padding: 12px; border: 1px solid #d9dce6; border-radius: 12px;
+      font-size: 16px; background: #fff;
+    }
+
+    .row { margin-top: 12px; display:flex; gap:10px; }
+    button {
+      flex: 1;
+      padding: 12px; border: 0; border-radius: 12px;
+      font-size: 16px; cursor: pointer;
+      background: #111; color: #fff;
+    }
+    button.secondary { background: #e9ecf5; color: #111; }
+
+    .results { margin-top: 14px; }
+    .result {
+      display:flex; justify-content: space-between; align-items:center;
+      padding: 10px 12px; border-radius: 12px; background:#f3f5fb;
+      margin-top: 8px; font-size: 14px; gap: 10px;
+    }
+    .value { font-weight: 800; text-align:right; }
+    .hint { font-size: 12px; color:#555; margin-top: 10px; line-height: 1.35; }
+    .tiny { font-size: 11px; color:#666; margin-top: 8px; }
+
+    .callout {
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 12px;
+      background: #111;
+      color: #fff;
+      font-weight: 800;
+      line-height: 1.3;
+    }
+    .status { font-weight: 800; }
+    .divider {
+      height: 1px;
+      background: #e6e9f2;
+      margin: 12px 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+
+    <div class="card">
+      <h1>Labor Tools</h1>
+      <p class="sub">
+        One page. Two tools. Built for shift managers doing real-time decisions without breaking ops.
+      </p>
+    </div>
+
+    <!-- =========================
+         TOOL 1: Monthly Daily Attack
+    ========================== -->
+    <div class="card" id="tool1">
+      <h2>1) Monthly Labor “Daily Attack”</h2>
+      <p class="sub">
+        Shows MTD variance (OVER/UNDER) and the needed average labor % for the rest of the month to finish on plan.
+      </p>
+
+      <div class="grid">
+        <div>
+          <label for="monthSelect">Month</label>
+          <input id="monthSelect" list="months" placeholder="January" />
+          <datalist id="months">
+            <option>January</option><option>February</option><option>March</option><option>April</option>
+            <option>May</option><option>June</option><option>July</option><option>August</option>
+            <option>September</option><option>October</option><option>November</option><option>December</option>
+          </datalist>
+        </div>
+
+        <div>
+          <label for="yearInput">Year</label>
+          <input id="yearInput" inputmode="numeric" placeholder="2026" />
+        </div>
+
+        <div>
+          <label for="targetPct">Target Labor %</label>
+          <input id="targetPct" inputmode="decimal" placeholder="20.55" />
+        </div>
+
+        <div>
+          <label for="daysMonth">Days in Month (auto)</label>
+          <input id="daysMonth" inputmode="numeric" placeholder="31" readonly />
+        </div>
+
+        <div>
+          <label for="currentPct">Current MTD Labor %</label>
+          <input id="currentPct" inputmode="decimal" placeholder="22.10" />
+        </div>
+
+        <div>
+          <label for="daysActual">Days Actual (MTD)</label>
+          <input id="daysActual" inputmode="numeric" placeholder="19" />
+        </div>
+      </div>
+
+      <div class="row">
+        <button id="calcBtn1">Calculate</button>
+        <button class="secondary" id="resetBtn1" type="button">Reset</button>
+      </div>
+
+      <div class="hint" id="todayLine" style="margin-top:10px; font-weight:800;">
+        Today is Day — of —.
+      </div>
+
+      <div class="results" id="results1" style="display:none;">
+        <div class="result">
+          <span class="status" id="statusText">—</span>
+          <span class="value" id="varianceFriendly">—</span>
+        </div>
+
+        <div class="result"><span>Remaining days</span><span class="value" id="daysLeft">—</span></div>
+        <div class="result"><span>Avg Labor % needed for remaining days</span><span class="value" id="neededRestAvg">—</span></div>
+
+        <div class="divider"></div>
+
+        <div class="result"><span>Target “points” (Target % × Days in month)</span><span class="value" id="targetPts">—</span></div>
+        <div class="result"><span>MTD “points” (MTD % × Days actual)</span><span class="value" id="actualPts">—</span></div>
+
+        <div class="hint">
+          Notes:
+          <ul>
+            <li>Variance = <b>MTD % − Target %</b>, displayed as OVER/UNDER (no negatives).</li>
+            <li>“Needed avg for remaining days” is the daily attack target.</li>
+          </ul>
+        </div>
+        <div class="tiny" id="err1" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- =========================
+         TOOL 2: Real-time labor cut
+    ========================== -->
+    <div class="card" id="tool2">
+      <h2>2) Real-Time Labor Cut (Sales Variance → Hours)</h2>
+      <p class="sub">
+        Enter your sales miss/gain vs projection, labor target %, and avg wage/hr. Get labor $ to protect and hours/minutes to cut.
+      </p>
+
+      <div class="grid">
+        <div>
+          <label for="salesVar">Sales Variance ($) = Actual Sales − Projected Sales</label>
+	<div class="tiny" style="margin-top:-6px;">
+  Example: $9,810 actual − $10,000 projected = <b>-$190</b>
+</div>
+
+          <input id="salesVar" inputmode="decimal" placeholder="-189.86" />
+        </div>
+
+        <div>
+          <label for="laborTargetPct2">Labor Target %</label>
+          <input id="laborTargetPct2" inputmode="decimal" placeholder="22" />
+        </div>
+
+        <div>
+          <label for="avgWage">Avg Wage ($/hr)</label>
+          <input id="avgWage" inputmode="decimal" placeholder="15" />
+        </div>
+
+        <div>
+          <label for="roundTo">Round minutes to</label>
+          <input id="roundTo" inputmode="numeric" placeholder="5" />
+        </div>
+      </div>
+
+      <div class="row">
+        <button id="calcBtn2">Calculate</button>
+        <button class="secondary" id="resetBtn2" type="button">Reset</button>
+      </div>
+
+      <div class="results" id="results2" style="display:none;">
+        <div class="callout" id="headline2">—</div>
+
+        <div class="result"><span>Labor $ to protect (Sales × Target %)</span><span class="value" id="laborDollars">—</span></div>
+        <div class="result"><span>Hours to cut (Labor $ ÷ Avg wage)</span><span class="value" id="hoursToCut">—</span></div>
+        <div class="result"><span>Minutes to cut (hours × 60)</span><span class="value" id="minutesToCut">—</span></div>
+        <div class="result"><span>Rounded minutes (easy scheduling)</span><span class="value" id="minutesRounded">—</span></div>
+
+        <div class="hint">
+          Tip: Use rounded minutes to reduce overlap, adjust breaks, or send someone early <b>without breaking the bottleneck</b>.
+        </div>
+        <div class="tiny" id="err2" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  function toNum(v) {
+    const cleaned = String(v ?? '').replace(/,/g,'').trim();
+    return cleaned === '' ? NaN : Number(cleaned);
+  }
+
+  function fmt2(n) {
+    if (!isFinite(n)) return '—';
+    return (Math.round(n * 100) / 100).toFixed(2);
+  }
+
+  function money(n) {
+    if (!isFinite(n)) return '—';
+    const abs = Math.abs(n);
+    return (n < 0 ? '-$' : '$') + abs.toFixed(2);
+  }
+
+  function showError(id, msg) {
+    const el = $(id);
+    el.style.display = 'block';
+    el.textContent = msg;
+    el.style.color = '#b00020';
+  }
+
+  function clearError(id) {
+    const el = $(id);
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+
+  /* =========================
+     TOOL 1: Monthly Daily Attack
+  ========================== */
+  const MONTHS = [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December"
+  ];
+
+  function daysInMonth(year, monthIndex) {
+    return new Date(year, monthIndex + 1, 0).getDate();
+  }
+
+  function getMonthIndexByName(name) {
+    const cleaned = String(name || "").trim().toLowerCase();
+    return MONTHS.findIndex(m => m.toLowerCase() === cleaned);
+  }
+
+  function updateMonthContext() {
+    const now = new Date();
+    const year = Number($('yearInput').value) || now.getFullYear();
+
+    let monthIndex = getMonthIndexByName($('monthSelect').value);
+    if (monthIndex < 0) monthIndex = now.getMonth();
+
+    const dim = daysInMonth(year, monthIndex);
+    $('daysMonth').value = String(dim);
+
+    const isCurrentMonth = (year === now.getFullYear() && monthIndex === now.getMonth());
+    const dayNum = isCurrentMonth ? now.getDate() : 0;
+
+    $('todayLine').textContent = isCurrentMonth
+      ? `Today is Day ${dayNum} of ${dim}.`
+      : `Selected month has ${dim} days. (Not the current month.)`;
+  }
+
+  function calcTool1() {
+    clearError('err1');
+
+    const targetPct = toNum($('targetPct').value);
+    const daysMonth = toNum($('daysMonth').value);
+    const currentPct = toNum($('currentPct').value);
+    const daysActual = toNum($('daysActual').value);
+
+    if (![targetPct, daysMonth, currentPct, daysActual].every(isFinite)) {
+      $('results1').style.display = 'block';
+      showError('err1', 'Please fill in Target %, Current MTD %, and Days Actual with valid numbers.');
+      return;
+    }
+    if (daysMonth <= 0 || daysActual < 0) {
+      $('results1').style.display = 'block';
+      showError('err1', 'Days must be positive, and Days Actual cannot be negative.');
+      return;
+    }
+    if (daysActual > daysMonth) {
+      $('results1').style.display = 'block';
+      showError('err1', 'Days Actual cannot be greater than Days in Month.');
+      return;
+    }
+
+    const daysLeft = daysMonth - daysActual;
+
+    // Variance for managers
+    const variancePct = currentPct - targetPct;
+
+    if (variancePct > 0) {
+      $('statusText').textContent = 'OVER plan (MTD variance)';
+      $('varianceFriendly').textContent = fmt2(variancePct) + '%';
+    } else if (variancePct < 0) {
+      $('statusText').textContent = 'UNDER plan (MTD variance)';
+      $('varianceFriendly').textContent = fmt2(Math.abs(variancePct)) + '%';
+    } else {
+      $('statusText').textContent = 'ON plan (MTD variance)';
+      $('varianceFriendly').textContent = '0.00%';
+    }
+
+    $('daysLeft').textContent = String(daysLeft);
+
+    // Needed average for remaining days
+    let neededRestAvg = NaN;
+    if (daysLeft > 0) {
+      neededRestAvg = (targetPct * daysMonth - currentPct * daysActual) / daysLeft;
+      $('neededRestAvg').textContent = fmt2(neededRestAvg) + '%';
+    } else {
+      $('neededRestAvg').textContent = '—';
+    }
+
+    // “Points” (optional detail)
+    const targetPts = targetPct * daysMonth;
+    const actualPts = currentPct * daysActual;
+    $('targetPts').textContent = fmt2(targetPts);
+    $('actualPts').textContent = fmt2(actualPts);
+
+    $('results1').style.display = 'block';
+  }
+
+  function resetTool1() {
+    const now = new Date();
+    $('monthSelect').value = MONTHS[now.getMonth()];
+    $('yearInput').value = String(now.getFullYear());
+
+    $('targetPct').value = '0.00';
+    $('currentPct').value = '0.00';
+    $('daysActual').value = '0';
+
+    updateMonthContext();
+
+    $('results1').style.display = 'none';
+    clearError('err1');
+  }
+
+  /* =========================
+     TOOL 2: Real-time Labor Cut
+  ========================== */
+  function roundToNearest(n, step) {
+    if (!isFinite(n) || !isFinite(step) || step <= 0) return n;
+    return Math.round(n / step) * step;
+  }
+
+  function calcTool2() {
+    clearError('err2');
+
+    const salesVar = toNum($('salesVar').value);
+    const laborTargetPct2 = toNum($('laborTargetPct2').value);
+    const avgWage = toNum($('avgWage').value);
+    const roundStep = toNum($('roundTo').value);
+
+    if (![salesVar, laborTargetPct2, avgWage].every(isFinite)) {
+      $('results2').style.display = 'block';
+      showError('err2', 'Please fill in Sales Variance, Labor Target %, and Avg Wage with valid numbers.');
+      return;
+    }
+    if (avgWage <= 0) {
+      $('results2').style.display = 'block';
+      showError('err2', 'Avg Wage must be greater than 0.');
+      return;
+    }
+
+    const laborDollarsRaw = salesVar * (laborTargetPct2 / 100);
+    const laborDollarsToProtect = Math.abs(laborDollarsRaw);
+
+    const hoursToCut = laborDollarsToProtect / avgWage;
+    const minutesToCut = hoursToCut * 60;
+    const minutesRounded = roundToNearest(minutesToCut, isFinite(roundStep) && roundStep > 0 ? roundStep : 5);
+
+    if (salesVar < 0) {
+      $('headline2').textContent =
+        `Sales are short by $${Math.abs(salesVar).toFixed(2)} → protect ${money(laborDollarsToProtect)} in labor (${fmt2(hoursToCut)} hrs).`;
+    } else if (salesVar > 0) {
+      $('headline2').textContent =
+        `Sales are ahead by $${salesVar.toFixed(2)} → you can add up to ${money(laborDollarsToProtect)} in labor (${fmt2(hoursToCut)} hrs) IF ops need it.`;
+    } else {
+      $('headline2').textContent =
+        `Sales are on plan → no labor adjustment needed from projection variance.`;
+    }
+
+    $('laborDollars').textContent = money(laborDollarsToProtect);
+    $('hoursToCut').textContent = fmt2(hoursToCut);
+    $('minutesToCut').textContent = Math.round(minutesToCut) + ' min';
+    $('minutesRounded').textContent = Math.round(minutesRounded) + ' min';
+
+    $('results2').style.display = 'block';
+  }
+
+  function resetTool2() {
+    $('salesVar').value = '0.00';
+    $('laborTargetPct2').value = '0.00';
+    $('avgWage').value = '0.00';
+    $('roundTo').value = '5';
+
+    $('results2').style.display = 'none';
+    clearError('err2');
+  }
+
+  // Wire up buttons
+  $('calcBtn1').addEventListener('click', calcTool1);
+  $('resetBtn1').addEventListener('click', resetTool1);
+
+  $('calcBtn2').addEventListener('click', calcTool2);
+  $('resetBtn2').addEventListener('click', resetTool2);
+
+  $('monthSelect').addEventListener('input', updateMonthContext);
+  $('yearInput').addEventListener('input', updateMonthContext);
+
+  // Enter key runs the most recent focused tool (simple: run both safely)
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      // If they’re working in the real-time section, calc that; otherwise calc monthly.
+      const active = document.activeElement?.id || '';
+      if (['salesVar','laborTargetPct2','avgWage','roundTo'].includes(active)) calcTool2();
+      else calcTool1();
+    }
+  });
+
+  // Start clean
+  resetTool1();
+  resetTool2();
+</script>
+</body>
+</html>
