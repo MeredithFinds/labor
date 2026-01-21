@@ -23,7 +23,8 @@
 
     .grid { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
     label { font-size: 12px; color: #444; display: block; margin-bottom: 6px; }
-    input {
+
+    input, select {
       width: 100%; box-sizing: border-box;
       padding: 12px; border: 1px solid #d9dce6; border-radius: 12px;
       font-size: 16px; background: #fff;
@@ -72,7 +73,7 @@
     <div class="card">
       <h1>Labor Tools</h1>
       <p class="sub">
-        One page. Two tools. Built for shift managers doing real-time decisions without breaking ops.
+        One page. Two tools. Built for shift managers making real-time decisions without breaking ops.
       </p>
     </div>
 
@@ -162,17 +163,25 @@
     <div class="card" id="tool2">
       <h2>2) Real-Time Labor Cut (Sales Variance → Hours)</h2>
       <p class="sub">
-        Enter your sales miss/gain vs projection, labor target %, and avg wage/hr. Get labor $ to protect and hours/minutes to cut.
+        Enter your sales difference vs projection, labor target %, and avg wage/hr. Get labor $ to protect and hours/minutes to cut.
       </p>
 
       <div class="grid">
+        <!-- UPDATED: iPhone-friendly (no minus sign needed) -->
         <div>
-          <label for="salesVar">Sales Variance ($) = Actual Sales − Projected Sales</label>
-	<div class="tiny" style="margin-top:-6px;">
-  Example: $9,810 actual − $10,000 projected = <b>-$190</b>
-</div>
+          <label for="salesVarAbs">Sales difference ($)</label>
+          <input id="salesVarAbs" inputmode="decimal" placeholder="189.86" />
+          <div class="tiny" style="margin-top:-6px;">
+            Enter a positive number. Select whether you are behind or ahead of projection.
+          </div>
+        </div>
 
-          <input id="salesVar" inputmode="decimal" placeholder="-189.86" />
+        <div>
+          <label for="salesDir">Sales vs Projection</label>
+          <select id="salesDir">
+            <option value="behind" selected>Behind Projection (Actual &lt; Projected)</option>
+            <option value="ahead">Ahead of Projection (Actual &gt; Projected)</option>
+          </select>
         </div>
 
         <div>
@@ -188,6 +197,11 @@
         <div>
           <label for="roundTo">Round minutes to</label>
           <input id="roundTo" inputmode="numeric" placeholder="5" />
+        </div>
+
+        <div>
+          <label for="blankPad"> </label>
+          <input id="blankPad" style="visibility:hidden;" aria-hidden="true" />
         </div>
       </div>
 
@@ -305,7 +319,6 @@
 
     const daysLeft = daysMonth - daysActual;
 
-    // Variance for managers
     const variancePct = currentPct - targetPct;
 
     if (variancePct > 0) {
@@ -321,7 +334,6 @@
 
     $('daysLeft').textContent = String(daysLeft);
 
-    // Needed average for remaining days
     let neededRestAvg = NaN;
     if (daysLeft > 0) {
       neededRestAvg = (targetPct * daysMonth - currentPct * daysActual) / daysLeft;
@@ -330,7 +342,6 @@
       $('neededRestAvg').textContent = '—';
     }
 
-    // “Points” (optional detail)
     const targetPts = targetPct * daysMonth;
     const actualPts = currentPct * daysActual;
     $('targetPts').textContent = fmt2(targetPts);
@@ -365,14 +376,20 @@
   function calcTool2() {
     clearError('err2');
 
-    const salesVar = toNum($('salesVar').value);
+    const salesVarAbs = toNum($('salesVarAbs').value);
+    const salesDir = $('salesDir').value;
     const laborTargetPct2 = toNum($('laborTargetPct2').value);
     const avgWage = toNum($('avgWage').value);
     const roundStep = toNum($('roundTo').value);
 
-    if (![salesVar, laborTargetPct2, avgWage].every(isFinite)) {
+    if (![salesVarAbs, laborTargetPct2, avgWage].every(isFinite)) {
       $('results2').style.display = 'block';
-      showError('err2', 'Please fill in Sales Variance, Labor Target %, and Avg Wage with valid numbers.');
+      showError('err2', 'Please fill in Sales difference, Labor Target %, and Avg Wage with valid numbers.');
+      return;
+    }
+    if (salesVarAbs < 0) {
+      $('results2').style.display = 'block';
+      showError('err2', 'Sales difference should be a positive number. Use the dropdown to choose behind/ahead.');
       return;
     }
     if (avgWage <= 0) {
@@ -381,6 +398,9 @@
       return;
     }
 
+    // Convert into signed variance behind-the-scenes
+    const salesVar = (salesDir === 'behind' ? -Math.abs(salesVarAbs) : Math.abs(salesVarAbs));
+
     const laborDollarsRaw = salesVar * (laborTargetPct2 / 100);
     const laborDollarsToProtect = Math.abs(laborDollarsRaw);
 
@@ -388,15 +408,15 @@
     const minutesToCut = hoursToCut * 60;
     const minutesRounded = roundToNearest(minutesToCut, isFinite(roundStep) && roundStep > 0 ? roundStep : 5);
 
-    if (salesVar < 0) {
+    if (salesDir === 'behind' && salesVarAbs > 0) {
       $('headline2').textContent =
-        `Sales are short by $${Math.abs(salesVar).toFixed(2)} → protect ${money(laborDollarsToProtect)} in labor (${fmt2(hoursToCut)} hrs).`;
-    } else if (salesVar > 0) {
+        `Actual is behind projected by $${salesVarAbs.toFixed(2)} → protect ${money(laborDollarsToProtect)} in labor (${fmt2(hoursToCut)} hrs).`;
+    } else if (salesDir === 'ahead' && salesVarAbs > 0) {
       $('headline2').textContent =
-        `Sales are ahead by $${salesVar.toFixed(2)} → you can add up to ${money(laborDollarsToProtect)} in labor (${fmt2(hoursToCut)} hrs) IF ops need it.`;
+        `Actual is ahead of projected by $${salesVarAbs.toFixed(2)} → you can add up to ${money(laborDollarsToProtect)} in labor (${fmt2(hoursToCut)} hrs) IF ops need it.`;
     } else {
       $('headline2').textContent =
-        `Sales are on plan → no labor adjustment needed from projection variance.`;
+        `On projection → no labor adjustment needed from variance.`;
     }
 
     $('laborDollars').textContent = money(laborDollarsToProtect);
@@ -408,7 +428,8 @@
   }
 
   function resetTool2() {
-    $('salesVar').value = '0.00';
+    $('salesVarAbs').value = '0.00';
+    $('salesDir').value = 'behind';
     $('laborTargetPct2').value = '0.00';
     $('avgWage').value = '0.00';
     $('roundTo').value = '5';
@@ -427,12 +448,11 @@
   $('monthSelect').addEventListener('input', updateMonthContext);
   $('yearInput').addEventListener('input', updateMonthContext);
 
-  // Enter key runs the most recent focused tool (simple: run both safely)
+  // Enter key runs the most recent focused tool
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
-      // If they’re working in the real-time section, calc that; otherwise calc monthly.
       const active = document.activeElement?.id || '';
-      if (['salesVar','laborTargetPct2','avgWage','roundTo'].includes(active)) calcTool2();
+      if (['salesVarAbs','salesDir','laborTargetPct2','avgWage','roundTo'].includes(active)) calcTool2();
       else calcTool1();
     }
   });
